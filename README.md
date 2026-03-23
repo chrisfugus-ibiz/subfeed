@@ -127,9 +127,22 @@ YouTube, subscriptions, subscription feed, chronological, YouTube feed, no algor
 
 ---
 
+## Contributors
+
+<!-- Add yourself here! Format: | [Name](GitHub profile) | Role | -->
+| Contributor | Role |
+|---|---|
+| [Chris](https://github.com/chrisfugus-ibiz) | Creator & maintainer |
+
+Want to contribute? See below.
+
+---
+
 ## Contributing
 
 Found a bug or have a feature request? [Open an issue](https://github.com/chrisfugus-ibiz/subfeed/issues).
+
+Pull requests are welcome. For major changes, please open an issue first to discuss what you'd like to change.
 
 ---
 
