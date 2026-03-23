@@ -9,8 +9,8 @@ const CONTROL_BAR_ID = 'subfeed-control-bar';
 // update this object instead of hunting through the codebase.
 
 const SEL = {
-  feedContainer:   'ytd-section-list-renderer #contents, #contents.ytd-section-list-renderer',
-  videoItem:       'ytd-video-renderer, ytd-rich-item-renderer',
+  feedContainer:   'ytd-rich-grid-renderer #contents, ytd-section-list-renderer #contents, #contents.ytd-rich-grid-renderer, #contents.ytd-section-list-renderer',
+  videoItem:       'ytd-rich-item-renderer, ytd-video-renderer, ytd-grid-video-renderer',
   videoTitle:      '#video-title, h3 a',
   channelName:     '#channel-name a, ytd-channel-name a',
   metaLine:        '#metadata-line span',
