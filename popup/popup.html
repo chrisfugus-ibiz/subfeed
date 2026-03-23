@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SubFeed</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      width: 280px;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: #fff;
+      color: #1a1a1a;
+      overflow: hidden;
+    }
+
+    /* ── Header ─────────────────────────────────────── */
+    .header {
+      background: #1D9E75;
+      padding: 14px 16px 12px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .header-icon {
+      width: 30px;
+      height: 30px;
+      background: rgba(255,255,255,0.2);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .header-icon svg {
+      width: 17px;
+      height: 17px;
+    }
+
+    .header-text { flex: 1; }
+
+    .header-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: #fff;
+      letter-spacing: -0.3px;
+    }
+
+    .header-sub {
+      font-size: 11px;
+      color: rgba(255,255,255,0.7);
+      margin-top: 1px;
+    }
+
+    .header-status {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.4);
+      flex-shrink: 0;
+    }
+
+    .header-status.active {
+      background: #fff;
+      box-shadow: 0 0 0 3px rgba(255,255,255,0.25);
+    }
+
+    /* ── Body ────────────────────────────────────────── */
+    .body {
+      padding: 12px 14px;
+    }
+
+    /* ── Row ─────────────────────────────────────────── */
+    .row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 0;
+      border-bottom: 1px solid #f0f0f0;
+    }
+
+    .row:last-of-type { border-bottom: none; }
+
+    .row-label {
+      font-size: 13px;
+      color: #444;
+    }
+
+    .row-sub {
+      font-size: 11px;
+      color: #999;
+      margin-top: 1px;
+    }
+
+    /* ── Toggle ──────────────────────────────────────── */
+    .toggle-wrap {
+      position: relative;
+      width: 36px;
+      height: 20px;
+      flex-shrink: 0;
+    }
+
+    .toggle-wrap input {
+      opacity: 0;
+      width: 100%;
+      height: 100%;
+      position: absolute;
+      cursor: pointer;
+      z-index: 1;
+      margin: 0;
+    }
+
+    .toggle-track {
+      width: 36px;
+      height: 20px;
+      background: #ccc;
+      border-radius: 10px;
+      transition: background 0.2s;
+      pointer-events: none;
+    }
+
+    .toggle-knob {
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      width: 16px;
+      height: 16px;
+      background: white;
+      border-radius: 50%;
+      transition: transform 0.2s;
+      pointer-events: none;
+    }
+
+    .toggle-wrap input:checked ~ .toggle-track { background: #1D9E75; }
+    .toggle-wrap input:checked ~ .toggle-knob  { transform: translateX(16px); }
+
+    /* ── Pill row ────────────────────────────────────── */
+    .pill-row {
+      display: flex;
+      gap: 5px;
+    }
+
+    .pill {
+      font-size: 11px;
+      font-weight: 500;
+      padding: 4px 10px;
+      border-radius: 20px;
+      border: 1px solid #ddd;
+      background: transparent;
+      color: #666;
+      cursor: pointer;
+      transition: all 0.12s;
+      font-family: inherit;
+    }
+
+    .pill:hover { border-color: #1D9E75; color: #1D9E75; }
+    .pill.active { background: #1D9E75; color: #fff; border-color: #1D9E75; }
+
+    /* ── Stats ───────────────────────────────────────── */
+    .stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 6px;
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 1px solid #f0f0f0;
+    }
+
+    .stat {
+      background: #f7f7f7;
+      border-radius: 8px;
+      padding: 8px 6px;
+      text-align: center;
+    }
+
+    .stat-num {
+      font-size: 18px;
+      font-weight: 700;
+      color: #1D9E75;
+      line-height: 1;
+    }
+
+    .stat-label {
+      font-size: 9px;
+      color: #999;
+      margin-top: 3px;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+
+    /* ── Footer ──────────────────────────────────────── */
+    .footer {
+      padding: 8px 14px 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-top: 1px solid #f0f0f0;
+    }
+
+    .footer-link {
+      font-size: 11px;
+      color: #999;
+      text-decoration: none;
+      cursor: pointer;
+    }
+
+    .footer-link:hover { color: #1D9E75; }
+
+    .version {
+      font-size: 10px;
+      color: #ccc;
+    }
+
+    /* ── Notice banner ───────────────────────────────── */
+    .notice {
+      background: #FEF9EC;
+      border: 1px solid #F0C842;
+      border-radius: 6px;
+      padding: 7px 10px;
+      font-size: 11px;
+      color: #7a6010;
+      margin-bottom: 8px;
+      display: none;
+    }
+
+    .notice.show { display: block; }
+
+    /* ── Not on YT message ───────────────────────────── */
+    .not-on-yt {
+      padding: 16px 14px;
+      text-align: center;
+    }
+
+    .not-on-yt-icon {
+      font-size: 28px;
+      margin-bottom: 8px;
+    }
+
+    .not-on-yt-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 4px;
+    }
+
+    .not-on-yt-sub {
+      font-size: 11px;
+      color: #999;
+      line-height: 1.5;
+    }
+
+    .go-btn {
+      display: block;
+      margin: 12px 0 0;
+      padding: 8px 16px;
+      background: #1D9E75;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      width: 100%;
+      font-family: inherit;
+    }
+
+    .go-btn:hover { background: #0F6E56; }
+  </style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="header">
+  <div class="header-icon">
+    <svg viewBox="0 0 17 17" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x="1" y="3" width="13" height="2.2" rx="1.1" fill="white"/>
+      <rect x="1" y="7.4" width="9.5" height="2.2" rx="1.1" fill="white" opacity=".8"/>
+      <rect x="1" y="11.8" width="11" height="2.2" rx="1.1" fill="white" opacity=".65"/>
+      <circle cx="14" cy="8.5" r="2.8" fill="white" opacity=".95"/>
+      <path d="M12.7 8.5l1 1 2-2" stroke="#1D9E75" stroke-width=".9" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+  </div>
+  <div class="header-text">
+    <div class="header-title">SubFeed</div>
+    <div class="header-sub" id="header-sub">Loading...</div>
+  </div>
+  <div class="header-status" id="header-status"></div>
+</div>
+
+<!-- Main content — shown when on YouTube -->
+<div id="main-content" style="display:none">
+  <div class="body">
+
+    <!-- Notice banner (from remote config) -->
+    <div class="notice" id="notice-banner"></div>
+
+    <!-- Enable toggle -->
+    <div class="row">
+      <div>
+        <div class="row-label">Raw feed</div>
+        <div class="row-sub">Subscriptions only, newest first</div>
+      </div>
+      <label class="toggle-wrap">
+        <input type="checkbox" id="toggle-enabled">
+        <div class="toggle-track"></div>
+        <div class="toggle-knob"></div>
+      </label>
+    </div>
+
+    <!-- Time window -->
+    <div class="row">
+      <div class="row-label">Time window</div>
+      <div class="pill-row" id="time-pills">
+        <button class="pill" data-window="24h">24h</button>
+        <button class="pill" data-window="3d">3d</button>
+        <button class="pill" data-window="7d">7d</button>
+        <button class="pill" data-window="all">All</button>
+      </div>
+    </div>
+
+    <!-- Calm mode -->
+    <div class="row">
+      <div>
+        <div class="row-label">Calm mode</div>
+        <div class="row-sub">Hide thumbnails</div>
+      </div>
+      <label class="toggle-wrap">
+        <input type="checkbox" id="toggle-calm">
+        <div class="toggle-track"></div>
+        <div class="toggle-knob"></div>
+      </label>
+    </div>
+
+    <!-- Hide Shorts -->
+    <div class="row">
+      <div>
+        <div class="row-label">Hide Shorts</div>
+        <div class="row-sub">Remove Shorts from feed</div>
+      </div>
+      <label class="toggle-wrap">
+        <input type="checkbox" id="toggle-shorts">
+        <div class="toggle-track"></div>
+        <div class="toggle-knob"></div>
+      </label>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats">
+      <div class="stat">
+        <div class="stat-num" id="stat-subs">–</div>
+        <div class="stat-label">Subs</div>
+      </div>
+      <div class="stat">
+        <div class="stat-num" id="stat-today">–</div>
+        <div class="stat-label">New today</div>
+      </div>
+      <div class="stat">
+        <div class="stat-num" id="stat-hidden">–</div>
+        <div class="stat-label">Hidden</div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="footer">
+    <a class="footer-link" id="feedback-link">Send feedback</a>
+    <a class="footer-link" id="open-onboarding">Help</a>
+    <span class="version" id="version-label">v1.0.0</span>
+  </div>
+</div>
+
+<!-- Not on YouTube message -->
+<div id="not-on-yt" style="display:none">
+  <div class="not-on-yt">
+    <div class="not-on-yt-icon">▶</div>
+    <div class="not-on-yt-title">SubFeed is ready</div>
+    <div class="not-on-yt-sub">
+      Navigate to your YouTube<br>subscription feed to activate it.
+    </div>
+    <button class="go-btn" id="go-to-yt">
+      Open YouTube Subscriptions
+    </button>
+  </div>
+</div>
+
+<script src="popup.js"></script>
+</body>
+</html>

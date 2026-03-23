@@ -1,0 +1,12 @@
+{
+  "version": "1.0.0",
+  "killSwitch": false,
+  "features": {
+    "calmMode": true,
+    "timeFilter": true,
+    "hideShorts": true,
+    "channelFilter": false
+  },
+  "notice": null,
+  "minVersion": "1.0.0"
+}

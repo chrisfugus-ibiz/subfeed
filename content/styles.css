@@ -1,0 +1,154 @@
+/* SubFeed — content/styles.css */
+
+/* ── Control bar ─────────────────────────────────────────────── */
+#subfeed-control-bar {
+  width: 100%;
+  margin-bottom: 16px;
+  font-family: 'Roboto', sans-serif;
+}
+
+.sf-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: #fff;
+  border: 1.5px solid #1D9E75;
+  border-radius: 12px;
+  padding: 10px 16px;
+  flex-wrap: wrap;
+}
+
+/* Dark mode */
+html[dark] .sf-bar,
+ytd-app[dark] .sf-bar {
+  background: #212121;
+  border-color: #1D9E75;
+}
+
+.sf-bar-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.sf-logo {
+  font-size: 13px;
+  font-weight: 700;
+  color: #1D9E75;
+  letter-spacing: -0.3px;
+}
+
+.sf-badge {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  background: #1D9E75;
+  color: #fff;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.sf-bar-filters {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  flex-wrap: wrap;
+}
+
+.sf-filter-label {
+  font-size: 12px;
+  color: #606060;
+  flex-shrink: 0;
+}
+
+html[dark] .sf-filter-label,
+ytd-app[dark] .sf-filter-label {
+  color: #aaa;
+}
+
+.sf-pill {
+  font-size: 12px;
+  font-weight: 500;
+  padding: 4px 12px;
+  border-radius: 20px;
+  border: 1px solid #d3d3d3;
+  background: transparent;
+  color: #606060;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+  font-family: 'Roboto', sans-serif;
+}
+
+.sf-pill:hover {
+  border-color: #1D9E75;
+  color: #1D9E75;
+}
+
+.sf-pill-active {
+  background: #1D9E75 !important;
+  color: #fff !important;
+  border-color: #1D9E75 !important;
+}
+
+html[dark] .sf-pill,
+ytd-app[dark] .sf-pill {
+  border-color: #444;
+  color: #aaa;
+}
+
+html[dark] .sf-pill:hover,
+ytd-app[dark] .sf-pill:hover {
+  border-color: #1D9E75;
+  color: #1D9E75;
+}
+
+.sf-sep {
+  width: 1px;
+  height: 18px;
+  background: #e0e0e0;
+  flex-shrink: 0;
+}
+
+html[dark] .sf-sep,
+ytd-app[dark] .sf-sep {
+  background: #444;
+}
+
+.sf-bar-stats {
+  display: flex;
+  gap: 12px;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+.sf-stat {
+  font-size: 11px;
+  color: #909090;
+}
+
+.sf-stat-num {
+  font-weight: 600;
+  color: #1D9E75;
+}
+
+/* ── Calm mode feed overrides ────────────────────────────────── */
+.subfeed-calm ytd-thumbnail {
+  display: none !important;
+}
+
+.subfeed-calm ytd-video-renderer {
+  padding: 6px 0 !important;
+}
+
+/* ── Responsive ──────────────────────────────────────────────── */
+@media (max-width: 640px) {
+  .sf-bar-stats {
+    display: none;
+  }
+  .sf-bar {
+    padding: 8px 12px;
+  }
+}
