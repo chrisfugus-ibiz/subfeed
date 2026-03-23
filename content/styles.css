@@ -143,6 +143,64 @@ ytd-app[dark] .sf-sep {
   padding: 6px 0 !important;
 }
 
+/* ── Mark as Watched ─────────────────────────────────────────── */
+.sf-watched {
+  position: relative;
+}
+
+.sf-watched-badge {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  background: rgba(0,0,0,0.65);
+  color: white;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 4px;
+  z-index: 10;
+  letter-spacing: 0.3px;
+  pointer-events: none;
+}
+
+/* ── Watch Later bookmark button ─────────────────────────────── */
+.sf-bookmark-btn {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  border: none;
+  background: rgba(0,0,0,0.6);
+  color: #fff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.15s, background 0.15s;
+  z-index: 10;
+}
+
+*:hover > .sf-bookmark-btn {
+  opacity: 1;
+}
+
+.sf-bookmark-btn:hover {
+  background: rgba(0,0,0,0.8);
+}
+
+.sf-bookmark-btn.sf-bookmarked {
+  opacity: 1;
+  background: #1D9E75;
+  color: #fff;
+}
+
+.sf-bookmark-btn.sf-bookmarked svg path {
+  fill: currentColor;
+}
+
 /* ── Responsive ──────────────────────────────────────────────── */
 @media (max-width: 640px) {
   .sf-bar-stats {

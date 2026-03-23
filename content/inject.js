@@ -1,8 +1,25 @@
 // SubFeed — content/inject.js
 // Runs on youtube.com — watches for subscription feed and re-sorts it
 
-const SUBFEED_VERSION = '1.0.0';
+const SUBFEED_VERSION = '1.1.0';
 const CONTROL_BAR_ID = 'subfeed-control-bar';
+
+// ─── Selector resilience layer ──────────────────────────────────────────────
+// All YouTube DOM selectors in one place. When YouTube changes their DOM,
+// update this object instead of hunting through the codebase.
+
+const SEL = {
+  feedContainer:   'ytd-section-list-renderer #contents, #contents.ytd-section-list-renderer',
+  videoItem:       'ytd-video-renderer, ytd-rich-item-renderer',
+  videoTitle:      '#video-title, h3 a',
+  channelName:     '#channel-name a, ytd-channel-name a',
+  metaLine:        '#metadata-line span',
+  timeSpan:        '#metadata-line span:last-child, ytd-video-meta-block #metadata-line span:last-child',
+  thumbnail:       'ytd-thumbnail',
+  shortsOverlay:   'ytd-thumbnail-overlay-time-status-renderer[overlay-style="SHORTS"]',
+  durationOverlay: 'ytd-thumbnail-overlay-time-status-renderer span, .ytd-thumbnail-overlay-time-status-renderer',
+  titleLink:       'a#video-title, a.yt-simple-endpoint[href*="watch"]',
+};
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -29,13 +46,11 @@ function waitForElement(selector, timeout = 10000) {
 }
 
 // Parse YouTube's relative time strings into a timestamp (ms)
-// e.g. "2 hours ago", "3 days ago", "1 week ago"
 function parseRelativeTime(text) {
   if (!text) return 0;
   const t = text.trim().toLowerCase();
   const now = Date.now();
 
-  // Handle "Streamed 2 hours ago", "Premiered 3 days ago", plain "2 hours ago"
   const match = t.match(/(?:(?:streamed|premiered|updated)\s+)?(\d+)\s+(second|minute|hour|day|week|month|year)s?\s+ago/);
   if (!match) return 0;
 
@@ -56,13 +71,11 @@ function parseRelativeTime(text) {
 }
 
 function getVideoTimestamp(videoEl) {
-  // Try aria-label first (most reliable)
-  const timeEl = videoEl.querySelector('#metadata-line span:last-child, ytd-video-meta-block #metadata-line span:last-child');
+  const timeEl = videoEl.querySelector(SEL.timeSpan);
   if (timeEl) {
     const ts = parseRelativeTime(timeEl.textContent);
     if (ts > 0) return ts;
   }
-  // Fallback: search all spans for relative time pattern
   const spans = videoEl.querySelectorAll('span');
   for (const span of spans) {
     const ts = parseRelativeTime(span.textContent);
@@ -71,19 +84,43 @@ function getVideoTimestamp(videoEl) {
   return 0;
 }
 
+function extractVideoId(url) {
+  if (!url) return null;
+  const match = url.match(/[?&]v=([a-zA-Z0-9_-]{11})/);
+  return match ? match[1] : null;
+}
+
+function getVideoDurationSeconds(item) {
+  const durationEl = item.querySelector(SEL.durationOverlay);
+  if (!durationEl) return null;
+
+  const text = durationEl.textContent.trim();
+  const parts = text.split(':').map(Number);
+
+  if (parts.length === 2) return parts[0] * 60 + parts[1];
+  if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2];
+  return null;
+}
+
 function getVideoInfo(videoEl) {
-  const titleEl = videoEl.querySelector('#video-title, h3 a');
-  const channelEl = videoEl.querySelector('#channel-name a, ytd-channel-name a');
-  const metaSpans = videoEl.querySelectorAll('#metadata-line span');
+  const titleEl = videoEl.querySelector(SEL.videoTitle);
+  const channelEl = videoEl.querySelector(SEL.channelName);
+  const metaSpans = videoEl.querySelectorAll(SEL.metaLine);
+  const link = videoEl.querySelector(SEL.titleLink);
 
   const title   = titleEl?.textContent?.trim() || '';
   const channel = channelEl?.textContent?.trim() || '';
   const views   = metaSpans[0]?.textContent?.trim() || '';
   const time    = metaSpans[1]?.textContent?.trim() || '';
   const ts      = getVideoTimestamp(videoEl);
-  const isShort = videoEl.querySelector('ytd-thumbnail-overlay-time-status-renderer[overlay-style="SHORTS"]') !== null;
+  const isShort = videoEl.querySelector(SEL.shortsOverlay) !== null;
+  const videoId = extractVideoId(link?.href);
+  const url     = link?.href || '';
+  const thumbEl = videoEl.querySelector(`${SEL.thumbnail} img`);
+  const thumbnail = thumbEl?.src || '';
+  const duration = getVideoDurationSeconds(videoEl);
 
-  return { title, channel, views, time, ts, isShort };
+  return { title, channel, views, time, ts, isShort, videoId, url, thumbnail, duration };
 }
 
 // ─── Time window cutoffs ─────────────────────────────────────────────────────
@@ -95,11 +132,155 @@ const TIME_WINDOWS = {
   'all': Infinity
 };
 
-// ─── Control bar injection ───────────────────────────────────────────────────
+// ─── Mark as Watched ────────────────────────────────────────────────────────
 
-function removeControlBar() {
-  document.getElementById(SUBFEED_BAR_ID)?.remove();
+function attachWatchedListeners(videoItems) {
+  videoItems.forEach(item => {
+    if (item.dataset.sfWatchListener) return;
+    const link = item.querySelector(SEL.titleLink);
+    if (!link) return;
+    link.addEventListener('click', async () => {
+      const videoId = extractVideoId(link.href);
+      if (!videoId) return;
+      const { watchedIds = [] } = await chrome.storage.local.get('watchedIds');
+      if (!watchedIds.includes(videoId)) {
+        watchedIds.push(videoId);
+        const trimmed = watchedIds.slice(-2000);
+        await chrome.storage.local.set({ watchedIds: trimmed });
+      }
+    });
+    item.dataset.sfWatchListener = 'true';
+  });
 }
+
+async function applyWatchedState(videoItems, hideWatched) {
+  const { watchedIds = [] } = await chrome.storage.local.get('watchedIds');
+  if (watchedIds.length === 0) return;
+
+  const watchedSet = new Set(watchedIds);
+
+  videoItems.forEach(item => {
+    const link = item.querySelector(SEL.titleLink);
+    const videoId = extractVideoId(link?.href);
+
+    if (videoId && watchedSet.has(videoId)) {
+      if (hideWatched) {
+        item.style.display = 'none';
+      } else {
+        item.style.opacity = '0.45';
+        item.classList.add('sf-watched');
+        if (!item.querySelector('.sf-watched-badge')) {
+          const badge = document.createElement('span');
+          badge.className = 'sf-watched-badge';
+          badge.textContent = 'WATCHED';
+          item.style.position = 'relative';
+          item.appendChild(badge);
+        }
+      }
+    } else {
+      item.style.opacity = '';
+      item.classList.remove('sf-watched');
+      item.querySelector('.sf-watched-badge')?.remove();
+    }
+  });
+}
+
+// ─── Watch Later ────────────────────────────────────────────────────────────
+
+function injectBookmarkButtons(videoItems) {
+  videoItems.forEach(item => {
+    if (item.querySelector('.sf-bookmark-btn')) return;
+    const info = getVideoInfo(item);
+    if (!info.videoId) return;
+
+    const btn = document.createElement('button');
+    btn.className = 'sf-bookmark-btn';
+    btn.title = 'Save to Watch Later';
+    btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+      <path d="M2 2h10v11l-5-3-5 3V2z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+    </svg>`;
+
+    btn.addEventListener('click', async (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const { watchLater = [] } = await chrome.storage.local.get('watchLater');
+      if (watchLater.some(v => v.id === info.videoId)) {
+        // Remove if already saved
+        await chrome.storage.local.set({
+          watchLater: watchLater.filter(v => v.id !== info.videoId)
+        });
+        btn.classList.remove('sf-bookmarked');
+      } else {
+        watchLater.unshift({
+          id: info.videoId,
+          title: info.title,
+          channel: info.channel,
+          thumbnail: info.thumbnail,
+          url: info.url,
+          savedAt: Date.now()
+        });
+        await chrome.storage.local.set({ watchLater });
+        btn.classList.add('sf-bookmarked');
+      }
+    });
+
+    // Check if already saved
+    chrome.storage.local.get('watchLater', ({ watchLater = [] }) => {
+      if (watchLater.some(v => v.id === info.videoId)) {
+        btn.classList.add('sf-bookmarked');
+      }
+    });
+
+    item.style.position = 'relative';
+    item.appendChild(btn);
+  });
+}
+
+// ─── Keyword Mute ───────────────────────────────────────────────────────────
+
+async function applyKeywordMute(videoItems) {
+  const { mutedKeywords = [] } = await chrome.storage.local.get('mutedKeywords');
+  if (mutedKeywords.length === 0) return 0;
+
+  const patterns = mutedKeywords.map(k => k.toLowerCase().trim()).filter(Boolean);
+  let mutedCount = 0;
+
+  videoItems.forEach(item => {
+    if (item.style.display === 'none') return; // already hidden
+    const title = item.querySelector(SEL.videoTitle)?.textContent?.toLowerCase() || '';
+    if (patterns.some(kw => title.includes(kw))) {
+      item.style.display = 'none';
+      mutedCount++;
+    }
+  });
+
+  return mutedCount;
+}
+
+// ─── Duration Filter ────────────────────────────────────────────────────────
+
+async function applyDurationFilter(videoItems) {
+  const { durationMin = 0, durationMax = 0 } = await chrome.storage.local.get(['durationMin', 'durationMax']);
+  if (durationMin === 0 && durationMax === 0) return 0;
+
+  let filteredCount = 0;
+  const minSecs = durationMin * 60;
+  const maxSecs = durationMax > 0 ? durationMax * 60 : Infinity;
+
+  videoItems.forEach(item => {
+    if (item.style.display === 'none') return;
+    const dur = getVideoDurationSeconds(item);
+    if (dur === null) return; // keep if unknown (live streams etc.)
+    if (dur < minSecs || dur > maxSecs) {
+      item.style.display = 'none';
+      filteredCount++;
+    }
+  });
+
+  return filteredCount;
+}
+
+// ─── Control bar injection ───────────────────────────────────────────────────
 
 const SUBFEED_BAR_ID = CONTROL_BAR_ID;
 
@@ -128,6 +309,9 @@ function injectControlBar(container, cfg, stats) {
         <button class="sf-pill ${cfg.hideShorts ? 'sf-pill-active' : ''}" id="sf-shorts-btn">
           Hide Shorts
         </button>
+        <button class="sf-pill ${cfg.hideWatched ? 'sf-pill-active' : ''}" id="sf-watched-btn">
+          Unwatched
+        </button>
       </div>
       <div class="sf-bar-stats">
         <span class="sf-stat"><span class="sf-stat-num">${stats.shown}</span> videos</span>
@@ -146,15 +330,19 @@ function injectControlBar(container, cfg, stats) {
 
   // Calm mode toggle
   bar.querySelector('#sf-calm-btn').addEventListener('click', async () => {
-    const newVal = !cfg.calmMode;
-    await chrome.storage.local.set({ calmMode: newVal });
+    await chrome.storage.local.set({ calmMode: !cfg.calmMode });
     applySubFeed();
   });
 
   // Hide Shorts toggle
   bar.querySelector('#sf-shorts-btn').addEventListener('click', async () => {
-    const newVal = !cfg.hideShorts;
-    await chrome.storage.local.set({ hideShorts: newVal });
+    await chrome.storage.local.set({ hideShorts: !cfg.hideShorts });
+    applySubFeed();
+  });
+
+  // Unwatched only toggle
+  bar.querySelector('#sf-watched-btn').addEventListener('click', async () => {
+    await chrome.storage.local.set({ hideWatched: !cfg.hideWatched });
     applySubFeed();
   });
 
@@ -164,117 +352,163 @@ function injectControlBar(container, cfg, stats) {
 
 // ─── Core feed transformation ────────────────────────────────────────────────
 
+let isApplying = false;
+
 async function applySubFeed() {
-  // Check kill switch and enabled state
-  const cfg = await chrome.storage.local.get([
-    'rawEnabled', 'timeWindow', 'calmMode', 'hideShorts', 'killSwitch'
-  ]);
+  if (isApplying) return;
+  isApplying = true;
 
-  if (cfg.killSwitch) {
-    console.log('SubFeed: disabled by remote kill switch');
-    document.getElementById(SUBFEED_BAR_ID)?.remove();
-    return;
-  }
-
-  if (cfg.rawEnabled === false) {
-    document.getElementById(SUBFEED_BAR_ID)?.remove();
-    return;
-  }
-
-  // Only run on subscriptions feed page
-  if (!window.location.pathname.includes('/feed/subscriptions')) return;
-
-  // Wait for the feed content container
-  let container;
   try {
-    container = await waitForElement('ytd-section-list-renderer #contents, #contents.ytd-section-list-renderer');
-  } catch (e) {
-    // Not on the right page yet
-    return;
+    const cfg = await chrome.storage.local.get([
+      'rawEnabled', 'timeWindow', 'calmMode', 'hideShorts', 'hideWatched',
+      'killSwitch', 'durationMin', 'durationMax'
+    ]);
+
+    if (cfg.killSwitch) {
+      document.getElementById(SUBFEED_BAR_ID)?.remove();
+      return;
+    }
+
+    if (cfg.rawEnabled === false) {
+      document.getElementById(SUBFEED_BAR_ID)?.remove();
+      return;
+    }
+
+    if (!window.location.pathname.includes('/feed/subscriptions')) return;
+
+    let container;
+    try {
+      container = await waitForElement(SEL.feedContainer);
+    } catch (e) {
+      return;
+    }
+
+    const videoItems = [...container.querySelectorAll(SEL.videoItem)];
+    if (videoItems.length === 0) return;
+
+    const timeWindow = cfg.timeWindow || '7d';
+    const cutoff     = Date.now() - (TIME_WINDOWS[timeWindow] ?? TIME_WINDOWS['7d']);
+    const calmMode   = cfg.calmMode ?? false;
+    const hideShorts = cfg.hideShorts ?? true;
+    const hideWatched = cfg.hideWatched ?? false;
+
+    let shown = 0;
+    let hidden = 0;
+
+    // Tag each item with timestamp
+    videoItems.forEach(item => {
+      const info = getVideoInfo(item);
+      item.dataset.sfTs = info.ts;
+      item.dataset.sfIsShort = info.isShort;
+    });
+
+    // Sort by timestamp descending
+    const sorted = [...videoItems].sort((a, b) =>
+      parseInt(b.dataset.sfTs) - parseInt(a.dataset.sfTs)
+    );
+
+    const listEl = videoItems[0]?.parentElement;
+    if (!listEl) return;
+
+    // Re-append in sorted order with time window + shorts filter
+    sorted.forEach(item => {
+      const ts      = parseInt(item.dataset.sfTs);
+      const isShort = item.dataset.sfIsShort === 'true';
+
+      let hide = false;
+      if (ts > 0 && ts < cutoff) hide = true;
+      if (hideShorts && isShort) hide = true;
+
+      item.style.display = hide ? 'none' : '';
+      item.style.opacity = '';
+      item.classList.remove('sf-watched');
+      item.querySelector('.sf-watched-badge')?.remove();
+      hide ? hidden++ : shown++;
+
+      listEl.appendChild(item);
+    });
+
+    // Apply keyword mute
+    const mutedCount = await applyKeywordMute(sorted);
+    hidden += mutedCount;
+    shown -= mutedCount;
+
+    // Apply duration filter
+    const durationFiltered = await applyDurationFilter(sorted);
+    hidden += durationFiltered;
+    shown -= durationFiltered;
+
+    // Apply watched state (grey out or hide)
+    await applyWatchedState(sorted, hideWatched);
+
+    // Attach click listeners for tracking watched videos
+    attachWatchedListeners(sorted);
+
+    // Inject bookmark buttons for Watch Later
+    injectBookmarkButtons(sorted);
+
+    // Calm mode
+    container.querySelectorAll(SEL.thumbnail).forEach(thumb => {
+      thumb.style.display = calmMode ? 'none' : '';
+    });
+
+    // Persist stats for popup
+    chrome.storage.local.set({ hiddenCount: hidden, todayCount: shown });
+
+    // Inject control bar
+    injectControlBar(container, cfg, { shown, hidden });
+
+    // Set up infinite scroll observer
+    setupFeedObserver(listEl);
+
+  } finally {
+    isApplying = false;
   }
+}
 
-  // Gather all video renderer elements
-  const videoItems = [...container.querySelectorAll('ytd-video-renderer, ytd-rich-item-renderer')];
-  if (videoItems.length === 0) return;
+// ─── Infinite scroll handling ───────────────────────────────────────────────
+// YouTube lazy-loads feed items as the user scrolls. We watch for new items
+// and re-apply SubFeed when they appear.
 
-  const timeWindow = cfg.timeWindow || '7d';
-  const cutoff     = Date.now() - (TIME_WINDOWS[timeWindow] ?? TIME_WINDOWS['7d']);
-  const calmMode   = cfg.calmMode ?? false;
-  const hideShorts = cfg.hideShorts ?? true;
+let feedObserver = null;
 
-  let shown = 0;
-  let hidden = 0;
+function setupFeedObserver(listEl) {
+  if (feedObserver) feedObserver.disconnect();
 
-  // Tag each item with its timestamp (data attribute for easy re-sorting)
-  videoItems.forEach(item => {
-    const info = getVideoInfo(item);
-    item.dataset.sfTs = info.ts;
-    item.dataset.sfIsShort = info.isShort;
+  let debounceTimer = null;
+  feedObserver = new MutationObserver((mutations) => {
+    const hasNewItems = mutations.some(m => m.addedNodes.length > 0);
+    if (!hasNewItems) return;
+
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(() => {
+      applySubFeed();
+    }, 500);
   });
 
-  // Sort by timestamp descending (newest first)
-  const sorted = [...videoItems].sort((a, b) =>
-    parseInt(b.dataset.sfTs) - parseInt(a.dataset.sfTs)
-  );
-
-  // Find the actual content list (direct parent of items)
-  const listEl = videoItems[0]?.parentElement;
-  if (!listEl) return;
-
-  // Re-append in sorted order, applying visibility filters
-  sorted.forEach(item => {
-    const ts      = parseInt(item.dataset.sfTs);
-    const isShort = item.dataset.sfIsShort === 'true';
-
-    let hide = false;
-    if (ts > 0 && ts < cutoff) hide = true;
-    if (hideShorts && isShort) hide = true;
-
-    item.style.display = hide ? 'none' : '';
-    hide ? hidden++ : shown++;
-
-    listEl.appendChild(item); // moves to end in sorted order
-  });
-
-  // Calm mode — hide thumbnails
-  container.querySelectorAll('ytd-thumbnail').forEach(thumb => {
-    thumb.style.display = calmMode ? 'none' : '';
-  });
-
-  // Persist stats for popup
-  chrome.storage.local.set({ hiddenCount: hidden, todayCount: shown });
-
-  // Inject control bar
-  injectControlBar(container, cfg, { shown, hidden });
+  feedObserver.observe(listEl, { childList: true });
 }
 
 // ─── SPA navigation watcher ──────────────────────────────────────────────────
-// YouTube is a Single Page App — URL changes don't trigger page reloads.
-// We watch for navigation events and re-apply SubFeed when the user
-// navigates to the subscriptions feed.
 
 let lastUrl = location.href;
 
 const navObserver = new MutationObserver(() => {
   if (location.href !== lastUrl) {
     lastUrl = location.href;
-    // Small delay to let YouTube render the new page
-    setTimeout(() => {
-      applySubFeed();
-    }, 1200);
+    if (feedObserver) feedObserver.disconnect();
+    setTimeout(() => applySubFeed(), 1200);
   }
 });
 
 navObserver.observe(document.body, { childList: true, subtree: true });
 
-// Also watch for YouTube's own navigation event
 window.addEventListener('yt-navigate-finish', () => {
   setTimeout(applySubFeed, 800);
 });
 
 // ─── Initial run ─────────────────────────────────────────────────────────────
 
-// Set defaults on first install
 chrome.storage.local.get(['rawEnabled', 'timeWindow'], (data) => {
   const defaults = {};
   if (data.rawEnabled === undefined) defaults.rawEnabled = true;
@@ -284,12 +518,10 @@ chrome.storage.local.get(['rawEnabled', 'timeWindow'], (data) => {
   }
 });
 
-// Listen for refresh messages from popup
 chrome.runtime.onMessage.addListener((msg) => {
   if (msg.type === 'SUBFEED_REFRESH') {
     applySubFeed();
   }
 });
 
-// Run on initial page load
 applySubFeed();

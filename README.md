@@ -17,9 +17,14 @@ YouTube's subscription feed stopped working for viewers. Instead of showing your
 - **Chronological subscription feed** — newest uploads always appear first, every time
 - **Subscriptions only** — zero recommended videos, suggested channels, or sponsored rows
 - **Time window filter** — quickly view what's new in the last 24 hours, 3 days, or 7 days
+- **Mark as Watched** — videos you click are tracked locally and greyed out so you never lose your place
+- **Unwatched Only mode** — toggle to hide watched videos entirely, showing a clean queue of new content
+- **Keyword Mute** — add words or phrases to mute list; any video with a matching title is hidden
+- **Watch Later list** — bookmark videos from your feed with one click, access them from the popup
+- **Duration Filter** — set min/max video length to show only videos in your preferred range
 - **Calm mode** — strips thumbnails for a distraction-free, text-only viewing list
 - **Hide Shorts** — remove YouTube Shorts from your subscription feed entirely
-- **Live stats** — see exactly how many subscriptions you have and how many videos are new today
+- **Live stats** — see videos showing, hidden count, and subscription stats in real time
 - **Zero data collection** — all settings stored locally in your browser, nothing leaves your device
 - **No account required** — no sign-up, no email, no login. Install and it works instantly
 
@@ -124,6 +129,36 @@ YouTube, subscriptions, subscription feed, chronological, YouTube feed, no algor
 **Permissions section:** The permissions explanation in the store description is unusually detailed — this is intentional. Chrome Web Store's review team flags extensions with broad host permissions. A clear, honest explanation of why `youtube.com` access is needed reduces review friction and builds user trust. Extensions with transparent permission explanations consistently get better ratings because users feel safer installing them.
 
 **"Who SubFeed is for" section:** Uses job-to-be-done framing rather than feature framing — this improves conversion on the store listing because it helps users self-identify rather than evaluate features.
+
+---
+
+## Roadmap
+
+### Shipped (v1.1.0)
+- Chronological feed sort
+- Time window filter (24h / 3d / 7d / All)
+- Calm mode (hide thumbnails)
+- Hide Shorts
+- Remote kill switch + feature flags via GitHub Pages
+- Mark as Watched (click tracking + visual indicator)
+- Unwatched Only filter
+- Keyword Mute (hide videos by title keywords)
+- Watch Later list (bookmark from feed, manage in popup)
+- Duration Filter (min/max video length)
+- Infinite scroll handling (new items sorted as they load)
+- Selector resilience layer (centralized YouTube DOM selectors)
+
+### Planned
+- Channel Grouping — organize subscriptions into named groups, filter by group
+- New upload notifications — browser notification when followed channels post
+- Export Watch Later as CSV
+- Firefox port
+- Channel Health Dashboard — see inactive channels, upload frequency
+- Daily Digest Email (requires backend)
+
+### Future
+- SubFeed Pro ($1/month) — unlimited keyword mutes, channel grouping, cross-device sync
+- SubFeed Web App (subfeed.app) — works on any browser, no extension needed
 
 ---
 

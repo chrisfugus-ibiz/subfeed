@@ -8,11 +8,11 @@
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
-      width: 280px;
+      width: 300px;
       font-family: 'Segoe UI', system-ui, sans-serif;
       background: #fff;
       color: #1a1a1a;
-      overflow: hidden;
+      overflow-x: hidden;
     }
 
     /* ── Header ─────────────────────────────────────── */
@@ -35,11 +35,7 @@
       flex-shrink: 0;
     }
 
-    .header-icon svg {
-      width: 17px;
-      height: 17px;
-    }
-
+    .header-icon svg { width: 17px; height: 17px; }
     .header-text { flex: 1; }
 
     .header-title {
@@ -68,10 +64,36 @@
       box-shadow: 0 0 0 3px rgba(255,255,255,0.25);
     }
 
-    /* ── Body ────────────────────────────────────────── */
-    .body {
-      padding: 12px 14px;
+    /* ── Tabs ──────────────────────────────────────── */
+    .tab-bar {
+      display: flex;
+      border-bottom: 1px solid #f0f0f0;
     }
+
+    .tab-btn {
+      flex: 1;
+      padding: 8px 0;
+      font-size: 11px;
+      font-weight: 600;
+      text-align: center;
+      border: none;
+      background: transparent;
+      color: #999;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      font-family: inherit;
+    }
+
+    .tab-btn.active {
+      color: #1D9E75;
+      border-bottom-color: #1D9E75;
+    }
+
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    /* ── Body ────────────────────────────────────────── */
+    .body { padding: 12px 14px; }
 
     /* ── Row ─────────────────────────────────────────── */
     .row {
@@ -84,16 +106,9 @@
 
     .row:last-of-type { border-bottom: none; }
 
-    .row-label {
-      font-size: 13px;
-      color: #444;
-    }
+    .row-label { font-size: 13px; color: #444; }
 
-    .row-sub {
-      font-size: 11px;
-      color: #999;
-      margin-top: 1px;
-    }
+    .row-sub { font-size: 11px; color: #999; margin-top: 1px; }
 
     /* ── Toggle ──────────────────────────────────────── */
     .toggle-wrap {
@@ -138,10 +153,7 @@
     .toggle-wrap input:checked ~ .toggle-knob  { transform: translateX(16px); }
 
     /* ── Pill row ────────────────────────────────────── */
-    .pill-row {
-      display: flex;
-      gap: 5px;
-    }
+    .pill-row { display: flex; gap: 5px; }
 
     .pill {
       font-size: 11px;
@@ -191,6 +203,191 @@
       letter-spacing: 0.3px;
     }
 
+    /* ── Keyword Mute ────────────────────────────────── */
+    .mute-input-row {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 8px;
+    }
+
+    .mute-input {
+      flex: 1;
+      padding: 6px 10px;
+      font-size: 12px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      font-family: inherit;
+      outline: none;
+    }
+
+    .mute-input:focus { border-color: #1D9E75; }
+
+    .mute-add-btn {
+      padding: 6px 12px;
+      font-size: 12px;
+      font-weight: 600;
+      border: none;
+      background: #1D9E75;
+      color: #fff;
+      border-radius: 8px;
+      cursor: pointer;
+      font-family: inherit;
+    }
+
+    .mute-add-btn:hover { background: #0F6E56; }
+
+    .mute-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+    }
+
+    .mute-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 8px;
+      font-size: 11px;
+      background: #f0f0f0;
+      border-radius: 12px;
+      color: #444;
+    }
+
+    .mute-tag-x {
+      cursor: pointer;
+      color: #999;
+      font-weight: 700;
+      font-size: 13px;
+      line-height: 1;
+    }
+
+    .mute-tag-x:hover { color: #e33; }
+
+    .mute-empty {
+      font-size: 11px;
+      color: #bbb;
+      padding: 4px 0;
+    }
+
+    /* ── Duration filter ─────────────────────────────── */
+    .duration-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 0;
+    }
+
+    .duration-input {
+      width: 50px;
+      padding: 4px 6px;
+      font-size: 12px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      text-align: center;
+      font-family: inherit;
+      outline: none;
+    }
+
+    .duration-input:focus { border-color: #1D9E75; }
+
+    .duration-label {
+      font-size: 11px;
+      color: #999;
+    }
+
+    /* ── Watch Later list ────────────────────────────── */
+    .wl-list {
+      max-height: 250px;
+      overflow-y: auto;
+    }
+
+    .wl-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 0;
+      border-bottom: 1px solid #f5f5f5;
+    }
+
+    .wl-item:last-child { border-bottom: none; }
+
+    .wl-thumb {
+      width: 56px;
+      height: 32px;
+      border-radius: 4px;
+      object-fit: cover;
+      background: #eee;
+      flex-shrink: 0;
+    }
+
+    .wl-info { flex: 1; min-width: 0; }
+
+    .wl-title {
+      font-size: 12px;
+      font-weight: 500;
+      color: #333;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      cursor: pointer;
+    }
+
+    .wl-title:hover { color: #1D9E75; }
+
+    .wl-channel {
+      font-size: 10px;
+      color: #999;
+    }
+
+    .wl-remove {
+      font-size: 16px;
+      color: #ccc;
+      cursor: pointer;
+      flex-shrink: 0;
+      border: none;
+      background: none;
+      font-family: inherit;
+      padding: 0 4px;
+    }
+
+    .wl-remove:hover { color: #e33; }
+
+    .wl-empty {
+      text-align: center;
+      padding: 20px 0;
+      font-size: 12px;
+      color: #bbb;
+    }
+
+    .wl-clear-btn {
+      display: block;
+      width: 100%;
+      padding: 7px;
+      margin-top: 8px;
+      font-size: 11px;
+      font-weight: 500;
+      border: 1px solid #ddd;
+      background: transparent;
+      color: #666;
+      border-radius: 8px;
+      cursor: pointer;
+      font-family: inherit;
+    }
+
+    .wl-clear-btn:hover { border-color: #e33; color: #e33; }
+
+    /* ── Section label ───────────────────────────────── */
+    .section-label {
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      color: #1D9E75;
+      margin: 10px 0 6px;
+    }
+
+    .section-label:first-child { margin-top: 0; }
+
     /* ── Footer ──────────────────────────────────────── */
     .footer {
       padding: 8px 14px 10px;
@@ -209,10 +406,7 @@
 
     .footer-link:hover { color: #1D9E75; }
 
-    .version {
-      font-size: 10px;
-      color: #ccc;
-    }
+    .version { font-size: 10px; color: #ccc; }
 
     /* ── Notice banner ───────────────────────────────── */
     .notice {
@@ -234,10 +428,7 @@
       text-align: center;
     }
 
-    .not-on-yt-icon {
-      font-size: 28px;
-      margin-bottom: 8px;
-    }
+    .not-on-yt-icon { font-size: 28px; margin-bottom: 8px; }
 
     .not-on-yt-title {
       font-size: 13px;
@@ -246,11 +437,7 @@
       margin-bottom: 4px;
     }
 
-    .not-on-yt-sub {
-      font-size: 11px;
-      color: #999;
-      line-height: 1.5;
-    }
+    .not-on-yt-sub { font-size: 11px; color: #999; line-height: 1.5; }
 
     .go-btn {
       display: block;
@@ -292,90 +479,147 @@
 
 <!-- Main content — shown when on YouTube -->
 <div id="main-content" style="display:none">
-  <div class="body">
 
-    <!-- Notice banner (from remote config) -->
-    <div class="notice" id="notice-banner"></div>
+  <!-- Tabs -->
+  <div class="tab-bar">
+    <button class="tab-btn active" data-tab="feed">Feed</button>
+    <button class="tab-btn" data-tab="filters">Filters</button>
+    <button class="tab-btn" data-tab="watchlater">Watch Later</button>
+  </div>
 
-    <!-- Enable toggle -->
-    <div class="row">
-      <div>
-        <div class="row-label">Raw feed</div>
-        <div class="row-sub">Subscriptions only, newest first</div>
+  <!-- Tab: Feed -->
+  <div class="tab-panel active" id="tab-feed">
+    <div class="body">
+      <div class="notice" id="notice-banner"></div>
+
+      <!-- Enable toggle -->
+      <div class="row">
+        <div>
+          <div class="row-label">Raw feed</div>
+          <div class="row-sub">Subscriptions only, newest first</div>
+        </div>
+        <label class="toggle-wrap">
+          <input type="checkbox" id="toggle-enabled">
+          <div class="toggle-track"></div>
+          <div class="toggle-knob"></div>
+        </label>
       </div>
-      <label class="toggle-wrap">
-        <input type="checkbox" id="toggle-enabled">
-        <div class="toggle-track"></div>
-        <div class="toggle-knob"></div>
-      </label>
+
+      <!-- Time window -->
+      <div class="row">
+        <div class="row-label">Time window</div>
+        <div class="pill-row" id="time-pills">
+          <button class="pill" data-window="24h">24h</button>
+          <button class="pill" data-window="3d">3d</button>
+          <button class="pill" data-window="7d">7d</button>
+          <button class="pill" data-window="all">All</button>
+        </div>
+      </div>
+
+      <!-- Calm mode -->
+      <div class="row">
+        <div>
+          <div class="row-label">Calm mode</div>
+          <div class="row-sub">Hide thumbnails</div>
+        </div>
+        <label class="toggle-wrap">
+          <input type="checkbox" id="toggle-calm">
+          <div class="toggle-track"></div>
+          <div class="toggle-knob"></div>
+        </label>
+      </div>
+
+      <!-- Hide Shorts -->
+      <div class="row">
+        <div>
+          <div class="row-label">Hide Shorts</div>
+          <div class="row-sub">Remove Shorts from feed</div>
+        </div>
+        <label class="toggle-wrap">
+          <input type="checkbox" id="toggle-shorts">
+          <div class="toggle-track"></div>
+          <div class="toggle-knob"></div>
+        </label>
+      </div>
+
+      <!-- Hide Watched -->
+      <div class="row">
+        <div>
+          <div class="row-label">Unwatched only</div>
+          <div class="row-sub">Hide videos you've clicked</div>
+        </div>
+        <label class="toggle-wrap">
+          <input type="checkbox" id="toggle-watched">
+          <div class="toggle-track"></div>
+          <div class="toggle-knob"></div>
+        </label>
+      </div>
+
+      <!-- Stats -->
+      <div class="stats">
+        <div class="stat">
+          <div class="stat-num" id="stat-subs">--</div>
+          <div class="stat-label">Subs</div>
+        </div>
+        <div class="stat">
+          <div class="stat-num" id="stat-today">--</div>
+          <div class="stat-label">Showing</div>
+        </div>
+        <div class="stat">
+          <div class="stat-num" id="stat-hidden">--</div>
+          <div class="stat-label">Hidden</div>
+        </div>
+      </div>
     </div>
+  </div>
 
-    <!-- Time window -->
-    <div class="row">
-      <div class="row-label">Time window</div>
-      <div class="pill-row" id="time-pills">
-        <button class="pill" data-window="24h">24h</button>
-        <button class="pill" data-window="3d">3d</button>
-        <button class="pill" data-window="7d">7d</button>
-        <button class="pill" data-window="all">All</button>
+  <!-- Tab: Filters -->
+  <div class="tab-panel" id="tab-filters">
+    <div class="body">
+
+      <!-- Keyword Mute -->
+      <div class="section-label">Muted keywords</div>
+      <div class="mute-input-row">
+        <input type="text" class="mute-input" id="mute-input" placeholder="e.g. reaction, drama">
+        <button class="mute-add-btn" id="mute-add">Add</button>
       </div>
+      <div class="mute-list" id="mute-list"></div>
+
+      <!-- Duration Filter -->
+      <div class="section-label">Duration filter (minutes)</div>
+      <div class="duration-row">
+        <span class="duration-label">Min</span>
+        <input type="number" class="duration-input" id="duration-min" min="0" value="0">
+        <span class="duration-label">Max</span>
+        <input type="number" class="duration-input" id="duration-max" min="0" value="0" placeholder="any">
+        <span class="duration-label">(0 = off)</span>
+      </div>
+
+      <!-- Clear watched history -->
+      <div class="section-label">Watch history</div>
+      <button class="wl-clear-btn" id="clear-watched">Clear watched history</button>
+
     </div>
+  </div>
 
-    <!-- Calm mode -->
-    <div class="row">
-      <div>
-        <div class="row-label">Calm mode</div>
-        <div class="row-sub">Hide thumbnails</div>
-      </div>
-      <label class="toggle-wrap">
-        <input type="checkbox" id="toggle-calm">
-        <div class="toggle-track"></div>
-        <div class="toggle-knob"></div>
-      </label>
+  <!-- Tab: Watch Later -->
+  <div class="tab-panel" id="tab-watchlater">
+    <div class="body">
+      <div class="wl-list" id="wl-list"></div>
     </div>
-
-    <!-- Hide Shorts -->
-    <div class="row">
-      <div>
-        <div class="row-label">Hide Shorts</div>
-        <div class="row-sub">Remove Shorts from feed</div>
-      </div>
-      <label class="toggle-wrap">
-        <input type="checkbox" id="toggle-shorts">
-        <div class="toggle-track"></div>
-        <div class="toggle-knob"></div>
-      </label>
-    </div>
-
-    <!-- Stats -->
-    <div class="stats">
-      <div class="stat">
-        <div class="stat-num" id="stat-subs">–</div>
-        <div class="stat-label">Subs</div>
-      </div>
-      <div class="stat">
-        <div class="stat-num" id="stat-today">–</div>
-        <div class="stat-label">New today</div>
-      </div>
-      <div class="stat">
-        <div class="stat-num" id="stat-hidden">–</div>
-        <div class="stat-label">Hidden</div>
-      </div>
-    </div>
-
   </div>
 
   <div class="footer">
-    <a class="footer-link" id="feedback-link">Send feedback</a>
+    <a class="footer-link" id="feedback-link">Feedback</a>
     <a class="footer-link" id="open-onboarding">Help</a>
-    <span class="version" id="version-label">v1.0.0</span>
+    <span class="version" id="version-label">v1.1.0</span>
   </div>
 </div>
 
 <!-- Not on YouTube message -->
 <div id="not-on-yt" style="display:none">
   <div class="not-on-yt">
-    <div class="not-on-yt-icon">▶</div>
+    <div class="not-on-yt-icon">&#9654;</div>
     <div class="not-on-yt-title">SubFeed is ready</div>
     <div class="not-on-yt-sub">
       Navigate to your YouTube<br>subscription feed to activate it.
