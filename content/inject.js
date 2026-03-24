@@ -18,7 +18,7 @@ const SEL = {
   thumbnail:       'ytd-thumbnail',
   shortsOverlay:   'ytd-thumbnail-overlay-time-status-renderer[overlay-style="SHORTS"]',
   durationOverlay: 'ytd-thumbnail-overlay-time-status-renderer span, .ytd-thumbnail-overlay-time-status-renderer',
-  titleLink:       'a#video-title, a.yt-simple-endpoint[href*="watch"]',
+  titleLink:       'a#video-title-link, a#video-title, a.yt-simple-endpoint[href*="watch"], h3 a',
 };
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -137,11 +137,23 @@ const TIME_WINDOWS = {
 function attachWatchedListeners(videoItems) {
   videoItems.forEach(item => {
     if (item.dataset.sfWatchListener) return;
-    const link = item.querySelector(SEL.titleLink);
-    if (!link) return;
-    link.addEventListener('click', async () => {
-      const videoId = extractVideoId(link.href);
-      if (!videoId) return;
+
+    // Find video ID from any link in the item
+    const allLinks = item.querySelectorAll('a[href*="watch"]');
+    let videoId = null;
+    for (const l of allLinks) {
+      videoId = extractVideoId(l.href);
+      if (videoId) break;
+    }
+    if (!videoId) return;
+
+    // Use mousedown on the entire item — fires before navigation
+    item.addEventListener('mousedown', async (e) => {
+      // Only track left clicks on links
+      if (e.button !== 0) return;
+      const clickedLink = e.target.closest('a[href*="watch"]');
+      if (!clickedLink) return;
+
       const { watchedIds = [] } = await chrome.storage.local.get('watchedIds');
       if (!watchedIds.includes(videoId)) {
         watchedIds.push(videoId);
@@ -497,6 +509,17 @@ function setupFeedObserver(listEl) {
   feedObserver.observe(listEl, { childList: true });
 }
 
+// ─── Debounced trigger ──────────────────────────────────────────────────────
+// All entry points funnel through this so we never run multiple times in quick
+// succession (which causes the visible flicker on page load).
+
+let applyTimer = null;
+
+function scheduleApply(delay = 800) {
+  clearTimeout(applyTimer);
+  applyTimer = setTimeout(() => applySubFeed(), delay);
+}
+
 // ─── SPA navigation watcher ──────────────────────────────────────────────────
 
 let lastUrl = location.href;
@@ -505,14 +528,14 @@ const navObserver = new MutationObserver(() => {
   if (location.href !== lastUrl) {
     lastUrl = location.href;
     if (feedObserver) feedObserver.disconnect();
-    setTimeout(() => applySubFeed(), 1200);
+    scheduleApply(1200);
   }
 });
 
 navObserver.observe(document.body, { childList: true, subtree: true });
 
 window.addEventListener('yt-navigate-finish', () => {
-  setTimeout(applySubFeed, 800);
+  scheduleApply(1000);
 });
 
 // ─── Initial run ─────────────────────────────────────────────────────────────
@@ -528,8 +551,9 @@ chrome.storage.local.get(['rawEnabled', 'timeWindow'], (data) => {
 
 chrome.runtime.onMessage.addListener((msg) => {
   if (msg.type === 'SUBFEED_REFRESH') {
-    applySubFeed();
+    scheduleApply(200);
   }
 });
 
-applySubFeed();
+// Single initial run — wait for YouTube to finish rendering
+scheduleApply(1500);
