@@ -410,6 +410,9 @@ async function applySubFeed() {
     const listEl = videoItems[0]?.parentElement;
     if (!listEl) return;
 
+    // Pause feed observer during DOM manipulation to prevent flicker loop
+    if (feedObserver) feedObserver.disconnect();
+
     // Re-append in sorted order with time window + shorts filter
     sorted.forEach(item => {
       const ts      = parseInt(item.dataset.sfTs);
@@ -471,14 +474,19 @@ async function applySubFeed() {
 // and re-apply SubFeed when they appear.
 
 let feedObserver = null;
+let knownItemCount = 0;
 
 function setupFeedObserver(listEl) {
   if (feedObserver) feedObserver.disconnect();
 
+  // Track how many items we know about after sorting
+  knownItemCount = listEl.querySelectorAll(SEL.videoItem).length;
+
   let debounceTimer = null;
-  feedObserver = new MutationObserver((mutations) => {
-    const hasNewItems = mutations.some(m => m.addedNodes.length > 0);
-    if (!hasNewItems) return;
+  feedObserver = new MutationObserver(() => {
+    // Only fire if YouTube added genuinely new items (infinite scroll)
+    const currentCount = listEl.querySelectorAll(SEL.videoItem).length;
+    if (currentCount <= knownItemCount) return;
 
     clearTimeout(debounceTimer);
     debounceTimer = setTimeout(() => {
