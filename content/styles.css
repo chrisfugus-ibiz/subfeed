@@ -1,5 +1,19 @@
 /* SubFeed — content/styles.css */
 
+/* ── Anti-flicker: hide feed until SubFeed finishes processing ── */
+/* This CSS loads before JS, so the feed is hidden from the very first paint. */
+/* SubFeed adds .sf-ready to the container after processing is complete. */
+ytd-browse[page-subtype="subscriptions"] ytd-rich-grid-renderer #contents,
+ytd-browse[page-subtype="subscriptions"] ytd-section-list-renderer #contents {
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+ytd-browse[page-subtype="subscriptions"] ytd-rich-grid-renderer #contents.sf-ready,
+ytd-browse[page-subtype="subscriptions"] ytd-section-list-renderer #contents.sf-ready {
+  opacity: 1;
+}
+
 /* ── Control bar ─────────────────────────────────────────────── */
 #subfeed-control-bar {
   width: 100%;

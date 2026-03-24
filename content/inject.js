@@ -16,7 +16,7 @@ const SEL = {
   metaLine:        '#metadata-line span',
   timeSpan:        '#metadata-line span:last-child, ytd-video-meta-block #metadata-line span:last-child',
   thumbnail:       'ytd-thumbnail',
-  shortsOverlay:   'ytd-thumbnail-overlay-time-status-renderer[overlay-style="SHORTS"]',
+  shortsOverlay:   'ytd-thumbnail-overlay-time-status-renderer[overlay-style="SHORTS"], [overlay-style="SHORTS"]',
   durationOverlay: 'ytd-thumbnail-overlay-time-status-renderer span, .ytd-thumbnail-overlay-time-status-renderer',
   titleLink:       'a#video-title-link, a#video-title, a.yt-simple-endpoint[href*="watch"], h3 a',
 };
@@ -133,36 +133,29 @@ const TIME_WINDOWS = {
 };
 
 // ─── Mark as Watched ────────────────────────────────────────────────────────
+// Global listener — catches all video clicks regardless of YouTube's DOM structure.
 
-function attachWatchedListeners(videoItems) {
-  videoItems.forEach(item => {
-    if (item.dataset.sfWatchListener) return;
+let watchedListenerAttached = false;
 
-    // Find video ID from any link in the item
-    const allLinks = item.querySelectorAll('a[href*="watch"]');
-    let videoId = null;
-    for (const l of allLinks) {
-      videoId = extractVideoId(l.href);
-      if (videoId) break;
-    }
+function attachGlobalWatchedListener() {
+  if (watchedListenerAttached) return;
+  watchedListenerAttached = true;
+
+  document.addEventListener('mousedown', async (e) => {
+    if (e.button !== 0) return;
+    // Find the closest link with a watch URL
+    const link = e.target.closest('a[href*="/watch"]');
+    if (!link) return;
+    const videoId = extractVideoId(link.href);
     if (!videoId) return;
 
-    // Use mousedown on the entire item — fires before navigation
-    item.addEventListener('mousedown', async (e) => {
-      // Only track left clicks on links
-      if (e.button !== 0) return;
-      const clickedLink = e.target.closest('a[href*="watch"]');
-      if (!clickedLink) return;
-
-      const { watchedIds = [] } = await chrome.storage.local.get('watchedIds');
-      if (!watchedIds.includes(videoId)) {
-        watchedIds.push(videoId);
-        const trimmed = watchedIds.slice(-2000);
-        await chrome.storage.local.set({ watchedIds: trimmed });
-      }
-    });
-    item.dataset.sfWatchListener = 'true';
-  });
+    const { watchedIds = [] } = await chrome.storage.local.get('watchedIds');
+    if (!watchedIds.includes(videoId)) {
+      watchedIds.push(videoId);
+      const trimmed = watchedIds.slice(-2000);
+      await chrome.storage.local.set({ watchedIds: trimmed });
+    }
+  }, true); // capture phase — fires before YouTube's handlers
 }
 
 async function applyWatchedState(videoItems, hideWatched) {
@@ -172,8 +165,13 @@ async function applyWatchedState(videoItems, hideWatched) {
   const watchedSet = new Set(watchedIds);
 
   videoItems.forEach(item => {
-    const link = item.querySelector(SEL.titleLink);
-    const videoId = extractVideoId(link?.href);
+    let link = item.querySelector(SEL.titleLink);
+    let videoId = extractVideoId(link?.href);
+    // Fallback for grid layout
+    if (!videoId) {
+      link = item.querySelector('a[href*="/watch"]');
+      videoId = extractVideoId(link?.href);
+    }
 
     if (videoId && watchedSet.has(videoId)) {
       if (hideWatched) {
@@ -203,6 +201,11 @@ function injectBookmarkButtons(videoItems) {
   videoItems.forEach(item => {
     if (item.querySelector('.sf-bookmark-btn')) return;
     const info = getVideoInfo(item);
+    // Fallback: try to find video ID from any link in the item
+    if (!info.videoId) {
+      const anyLink = item.querySelector('a[href*="/watch"]');
+      if (anyLink) info.videoId = extractVideoId(anyLink.href);
+    }
     if (!info.videoId) return;
 
     const btn = document.createElement('button');
@@ -425,9 +428,7 @@ async function applySubFeed() {
     // Pause feed observer during DOM manipulation
     if (feedObserver) feedObserver.disconnect();
 
-    // ── Hide container while we work — prevents all visual flicker ──
-    listEl.style.visibility = 'hidden';
-    listEl.style.minHeight = listEl.offsetHeight + 'px'; // prevent layout jump
+    // Remove ready class while we work (CSS hides the feed by default)
 
     // Re-append in sorted order with time window + shorts filter
     sorted.forEach(item => {
@@ -460,15 +461,18 @@ async function applySubFeed() {
     // Apply watched state (grey out or hide)
     await applyWatchedState(sorted, hideWatched);
 
-    // Attach click listeners for tracking watched videos
-    attachWatchedListeners(sorted);
+    // Attach global click listener for tracking watched videos
+    attachGlobalWatchedListener();
 
     // Inject bookmark buttons for Watch Later
     injectBookmarkButtons(sorted);
 
-    // Calm mode
-    container.querySelectorAll(SEL.thumbnail).forEach(thumb => {
-      thumb.style.display = calmMode ? 'none' : '';
+    // Calm mode — hide thumbnails in all visible items
+    sorted.forEach(item => {
+      if (item.style.display === 'none') return;
+      item.querySelectorAll(SEL.thumbnail).forEach(thumb => {
+        thumb.style.display = calmMode ? 'none' : '';
+      });
     });
 
     // Persist stats for popup
@@ -477,9 +481,8 @@ async function applySubFeed() {
     // Inject control bar
     injectControlBar(container, cfg, { shown, hidden });
 
-    // ── Reveal container — single paint frame, no flicker ──
-    listEl.style.visibility = '';
-    listEl.style.minHeight = '';
+    // ── Reveal feed — CSS transition fades in smoothly ──
+    listEl.classList.add('sf-ready');
 
     // Set up infinite scroll observer
     setupFeedObserver(listEl);
