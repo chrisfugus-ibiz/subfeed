@@ -422,8 +422,12 @@ async function applySubFeed() {
     const listEl = videoItems[0]?.parentElement;
     if (!listEl) return;
 
-    // Pause feed observer during DOM manipulation to prevent flicker loop
+    // Pause feed observer during DOM manipulation
     if (feedObserver) feedObserver.disconnect();
+
+    // ── Hide container while we work — prevents all visual flicker ──
+    listEl.style.visibility = 'hidden';
+    listEl.style.minHeight = listEl.offsetHeight + 'px'; // prevent layout jump
 
     // Re-append in sorted order with time window + shorts filter
     sorted.forEach(item => {
@@ -472,6 +476,10 @@ async function applySubFeed() {
 
     // Inject control bar
     injectControlBar(container, cfg, { shown, hidden });
+
+    // ── Reveal container — single paint frame, no flicker ──
+    listEl.style.visibility = '';
+    listEl.style.minHeight = '';
 
     // Set up infinite scroll observer
     setupFeedObserver(listEl);
